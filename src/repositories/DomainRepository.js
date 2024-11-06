@@ -1,4 +1,4 @@
-const knex = require("../database/kenx");
+const knex = require("../database/knex");
 
 class DomainRepository {
     async findById(id) {

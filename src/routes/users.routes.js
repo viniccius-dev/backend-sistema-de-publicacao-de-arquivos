@@ -4,6 +4,12 @@ const usersRoutes = Router();
 
 const UsersController = require("../controllers/UsersController");
 const verifyUserAuthorization = require("../middlewares/verifyUserAuthorization");
-const UsersController = require("../controllers/UsersController");
+const ensureAuthenticated = require("../middlewares/ensureAuthenticated");
 
-const UsersController = new UsersController();
+const usersController = new UsersController();
+
+usersRoutes.use(ensureAuthenticated);
+
+usersRoutes.post("/", verifyUserAuthorization(), usersController.create);
+
+module.exports = usersRoutes;

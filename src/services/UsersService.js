@@ -10,6 +10,7 @@ class UsersService {
     };
 
     async userCreate({ name, email, password, domain_id }) {
+
         if( !name || !email || !password || !domain_id ) {
             throw new AppError("Favor inserir todas as informações");
         };
