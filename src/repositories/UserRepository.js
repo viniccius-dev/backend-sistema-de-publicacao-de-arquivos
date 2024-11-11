@@ -33,6 +33,18 @@ class userRepository {
     async delete(id) {
         return await knex("users").where({ id }).delete();
     };
+
+    async getUsers() {
+        const users = await knex("users").select([
+            "id",
+            "name",
+            "email",
+            "domain_id",
+            "role"
+        ]).orderBy("email");
+
+        return users;
+    };
 }
 
 module.exports = userRepository;

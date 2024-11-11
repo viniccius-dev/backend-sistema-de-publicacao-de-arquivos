@@ -136,7 +136,7 @@ class UsersService {
         };
 
         return await this.userRepository.delete(id);
-    }
+    };
 }
 
 module.exports = UsersService;

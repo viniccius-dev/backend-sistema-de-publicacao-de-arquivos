@@ -33,6 +33,13 @@ class UsersController {
         await usersService.userDelete({ id, user_role });
 
         return response.json({ message: "Perfil deletado com sucesso."});
+    };
+
+    async index(request, response) {
+        const userRepository = new UserRepository();
+        const users = await userRepository.getUsers();
+
+        return response.json(users);
     }
 }
 
