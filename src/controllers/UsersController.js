@@ -40,6 +40,16 @@ class UsersController {
         const users = await userRepository.getUsers();
 
         return response.json(users);
+    };
+
+    async show(request, response) {
+        const { id } = request.params;
+
+        const userRepository = new UserRepository();
+        const usersService = new UsersService(userRepository);
+        const user = await usersService.showUser(id);
+
+        return response.json(user);
     }
 }
 

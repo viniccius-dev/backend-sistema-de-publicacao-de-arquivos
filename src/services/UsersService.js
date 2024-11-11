@@ -137,6 +137,18 @@ class UsersService {
 
         return await this.userRepository.delete(id);
     };
+
+    async showUser(id) {
+        const user = await this.userRepository.findById(id);
+
+        if(!user) {
+            throw new AppError("Usuário não encontrado.", 404);
+        }
+
+        delete user.password;
+
+        return user;
+    };
 }
 
 module.exports = UsersService;
