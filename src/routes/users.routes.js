@@ -12,5 +12,6 @@ usersRoutes.use(ensureAuthenticated);
 
 usersRoutes.post("/", verifyUserAuthorization(), usersController.create);
 usersRoutes.put("/", usersController.update);
+usersRoutes.delete("/:id", verifyUserAuthorization(), usersController.delete);
 
 module.exports = usersRoutes;

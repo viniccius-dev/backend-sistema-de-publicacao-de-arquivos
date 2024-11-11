@@ -10,7 +10,7 @@ class UsersController {
         await usersService.userCreate({ name, email, password, domain_id });
 
         return response.status(201).json({ message: "Perfil criado com sucesso." });
-    }
+    };
 
     async update(request, response) {
         const { name, email, password, old_password, domain_id, modify_user_id } = request.body;
@@ -22,6 +22,17 @@ class UsersController {
         const user = await usersService.userUpdate({ name, email, password, old_password, user_id, domain_id, user_role });
 
         return response.json({ user, message: "Perfil atualizado com sucesso." });
+    };
+
+    async delete(request, response) {
+        const { id } = request.params;
+        const user_role = request.user.role;
+
+        const userRepository = new UserRepository();
+        const usersService = new UsersService(userRepository);
+        await usersService.userDelete({ id, user_role });
+
+        return response.json({ message: "Perfil deletado com sucesso."});
     }
 }
 

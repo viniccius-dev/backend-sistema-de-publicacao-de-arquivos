@@ -28,7 +28,11 @@ class userRepository {
         const userUpdated = await knex("users").update(user).where({ id: user.id });
 
         return userUpdated;
-    }
+    };
+
+    async delete(id) {
+        return await knex("users").where({ id }).delete();
+    };
 }
 
 module.exports = userRepository;
