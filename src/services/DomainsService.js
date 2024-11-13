@@ -34,6 +34,28 @@ class DomainsService {
         const domainUpdate = await this.domainRepository.update(domain);
 
         return domainUpdate;
+    };
+
+    async domainDelete(domain_id) {
+        const domain = await this.domainRepository.findById(domain_id);
+
+        if(!domain) {
+            throw new AppError("Domínio não encontrado", 404);
+        };
+
+        //TODO: Adicionar exclusão de arquivos vinculados ao domínio
+
+        return await this.domainRepository.delete(domain_id);
+    };
+
+    async showDomain(domain_id) {
+        const domain = await this.domainRepository.findById(domain_id);
+
+        if(!domain) {
+            throw new AppError("Domínio não encontrado.", 404);
+        };
+
+        return domain;
     }
 };
 

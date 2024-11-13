@@ -26,6 +26,16 @@ class DomainRepository {
         const domainUpdate = await knex("domains").update(domain).where({ id: domain.id });
 
         return domainUpdate;
+    };
+
+    async delete(id) {
+        return await knex("domains").where({ id }).delete();
+    };
+
+    async getDomains() {
+        const domains = await knex("domains").orderBy("domain_name");
+
+        return domains;
     }
 }
 
