@@ -1,23 +1,23 @@
 const AppError = require("../utils/AppError");
 
 class TypesOfPublicationService {
-    constructor(typeOfPublicationRepository) {
-        this.typeOfPublicationRepository = typeOfPublicationRepository;
-    }
+    constructor(typesOfPublicationRepository) {
+        this.typesOfPublicationRepository = typesOfPublicationRepository;
+    };
 
-    async userCreate({ name, number_title, date_title, description_title, file_title }) {
+    async typeCreate({ name, number_title, date_title, description_title, file_title }) {
 
         if(!name) {
             throw new AppError("Insira o nome do tipo de publicação, por favor");
         };
 
-        const checkNameExist = await this.typeOfPublicationRepository.findByName(name);
+        const checkNameExist = await this.typesOfPublicationRepository.findByName(name);
 
         if(checkNameExist) {
             throw new AppError("Já existe um tipo de publicação registrado com esse nome.")
         }
 
-        const typePublicationCreated = await this.typeOfPublicationRepository.create({
+        const typePublicationCreated = await this.typesOfPublicationRepository.create({
             name,
             number_title,
             date_title,
@@ -26,6 +26,36 @@ class TypesOfPublicationService {
         });
 
         return typePublicationCreated;
+    };
+
+    async typeUpdate({ name, number_title, date_title, description_title, file_title, type_id }) {
+        const type = await this.typesOfPublicationRepository.findById(type_id);
+
+        if(!type) {
+            throw new AppError("Tipo de publicação não encontrado.", 404);
+        };
+
+        if(name) {
+            const typeWithUpdateName = await this.typesOfPublicationRepository.findByName(name);
+
+            if(typeWithUpdateName && typeWithUpdateName.id !== type.id) {
+                throw new AppError("Já existe um tipo de publicação com esse nome. Por favor insira outro nome.");
+            };
+        };
+
+        if(name !== "") {
+            type.name = name ?? type.name;
+        };
+
+        // No Front, não deixar mandar o form com os campos escolhidos como "vazio"
+        type.number_title = number_title ?? null;
+        type.date_title = date_title ?? null;
+        type.description_title = description_title ?? null;
+        type.file_title = file_title ?? null;
+
+        const typeOfPublicationUpdate = await this.typesOfPublicationRepository.update(type);
+
+        return typeOfPublicationUpdate;
     }
 }
 

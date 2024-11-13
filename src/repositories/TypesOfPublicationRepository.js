@@ -7,6 +7,12 @@ class TypesOfPublicationRepository {
         return typeName;
     };
 
+    async findById(id) {
+        const type = await knex("types_of_publication").where({ id }).first();
+
+        return type;
+    };
+
     async create({ name, number_title, date_title, description_title, file_title }) {
         const [typeId] = await knex("types_of_publication").insert({
             name,
@@ -19,11 +25,18 @@ class TypesOfPublicationRepository {
         return { id: typeId };
     };
 
+    async update(typeOfPublication) {
+        const typeOfPublicationUpdate = await knex("types_of_publication").update(typeOfPublication)
+            .where({ id: typeOfPublication.id });
+
+        return typeOfPublicationUpdate;
+    }
+
     async getTypes() {
         const typesOfPublication = await knex("types_of_publication");
 
         return typesOfPublication;
-    }
+    };
 };
 
 module.exports = TypesOfPublicationRepository;
