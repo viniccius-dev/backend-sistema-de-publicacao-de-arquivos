@@ -42,6 +42,17 @@ class TypesOfPublicationController {
 
         return response.json(typesOfPublication);
     };
+
+    async delete(request, response) {
+        const { type_id } = request.params;
+        
+        const typesOfPublicationRepository = new TypesOfPublicationRepository();
+        const typesOfPublicationService = new TypesOfPublicationService(typesOfPublicationRepository);
+
+        await typesOfPublicationService.typeDelete({ id: type_id });
+
+        return response.json({ message: "Tipo de publicação deletado com sucesso."});
+    }
 };
 
 module.exports = TypesOfPublicationController;

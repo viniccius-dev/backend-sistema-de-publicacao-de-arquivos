@@ -56,6 +56,16 @@ class TypesOfPublicationService {
         const typeOfPublicationUpdate = await this.typesOfPublicationRepository.update(type);
 
         return typeOfPublicationUpdate;
+    };
+
+    async typeDelete({ id }) {
+        const type = await this.typesOfPublicationRepository.findById(id);
+
+        if(!type) {
+            throw new AppError("Tipo de publicação não encontrado.", 404);
+        };
+
+        return await this.typesOfPublicationRepository.delete(type.id);
     }
 }
 

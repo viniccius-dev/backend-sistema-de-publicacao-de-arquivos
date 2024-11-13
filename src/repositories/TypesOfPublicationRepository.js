@@ -30,13 +30,17 @@ class TypesOfPublicationRepository {
             .where({ id: typeOfPublication.id });
 
         return typeOfPublicationUpdate;
-    }
+    };
 
     async getTypes() {
         const typesOfPublication = await knex("types_of_publication");
 
         return typesOfPublication;
     };
+
+    async delete(id) {
+        return await knex("types_of_publication").where({ id }).delete();
+    }
 };
 
 module.exports = TypesOfPublicationRepository;
