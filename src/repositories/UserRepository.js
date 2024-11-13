@@ -1,6 +1,6 @@
 const knex = require("../database/knex");
 
-class userRepository {
+class UserRepository {
     async findById(id) {
         const user = await knex("users").where({ id }).first();
 
@@ -21,7 +21,7 @@ class userRepository {
             domain_id
         });
 
-        return { id: userId }
+        return { id: userId };
     };
 
     async update(user) {
@@ -47,4 +47,4 @@ class userRepository {
     };
 }
 
-module.exports = userRepository;
+module.exports = UserRepository;
