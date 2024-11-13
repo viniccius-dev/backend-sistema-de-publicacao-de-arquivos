@@ -20,6 +20,12 @@ class DomainRepository {
         });
 
         return { id: domainId };
+    };
+
+    async update(domain) {
+        const domainUpdate = await knex("domains").update(domain).where({ id: domain.id });
+
+        return domainUpdate;
     }
 }
 

@@ -20,6 +20,21 @@ class DomainsService {
 
         return domainCreate;
     };
+
+    async domainUpdate({ domain_name, url, domain_id }) {
+        const domain = await this.domainRepository.findById(domain_id);
+
+        if(!domain) {
+            throw new AppError("Domínio não encontrado.", 404);
+        };
+
+        domain.domain_name = domain_name ?? domain.domain_name;
+        domain.url = url ?? domain.url;
+
+        const domainUpdate = await this.domainRepository.update(domain);
+
+        return domainUpdate;
+    }
 };
 
 module.exports = DomainsService;

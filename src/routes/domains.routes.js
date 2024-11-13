@@ -12,5 +12,6 @@ domainsRoutes.use(ensureAuthenticated);
 domainsRoutes.use(verifyUserAuthorization());
 
 domainsRoutes.post("/", domainsController.create);
+domainsRoutes.put("/:domain_id", domainsController.update);
 
 module.exports = domainsRoutes;
