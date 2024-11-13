@@ -12,5 +12,6 @@ typesOfPublicationRoutes.use(ensureAuthenticated);
 typesOfPublicationRoutes.use(verifyUserAuthorization());
 
 typesOfPublicationRoutes.post("/", typesOfPublicationController.create);
+typesOfPublicationRoutes.get("/", typesOfPublicationController.index);
 
 module.exports = typesOfPublicationRoutes;

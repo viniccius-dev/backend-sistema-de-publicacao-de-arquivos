@@ -17,6 +17,13 @@ class TypesOfPublicationController {
 
         return response.status(201).json({ message: "Perfil criado com sucesso" });
     };
+
+    async index(request, response) {
+        const typesOfPublicationRepository = new TypesOfPublicationRepository();
+        const typesOfPublication = await typesOfPublicationRepository.getTypes();
+
+        return response.json(typesOfPublication);
+    }
 };
 
 module.exports = TypesOfPublicationController;
