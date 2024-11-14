@@ -10,5 +10,6 @@ const publicationsController = new PublicationsController();
 publicationsRoutes.use(ensureAuthenticated);
 
 publicationsRoutes.post("/", publicationsController.create);
+publicationsRoutes.put("/:publication_id", publicationsController.update);
 
 module.exports = publicationsRoutes;
