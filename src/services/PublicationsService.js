@@ -4,6 +4,7 @@ const { toZonedTime } = require("date-fns-tz");
 const AppError = require("../utils/AppError");
 const DomainRepository = require("../repositories/DomainRepository");
 const TypesOfPublicationRepository = require("../repositories/TypesOfPublicationRepository");
+const DiskStorage = require("../providers/DiskStorage");
 
 class PublicationsService {
     constructor(publicationRepository) {
@@ -70,6 +71,55 @@ class PublicationsService {
 
         return publicationUpdated;
     };
+
+    async attachmentsCreate({ publication_id, domain_id, uploads }) {
+        const allowedExtensions = [".pdf", ".doc", ".docx", ".xls", ".xlsx", ".zip", ".ppt", ".pptx", ".png", ".jpg"];
+
+        const diskStorage = new DiskStorage();
+
+        const publication = await this.publicationRepository.findByIdAndDomain({ publication_id, domain_id });
+
+        if(!publication) {
+            throw new AppError("Publicação vinculada não encontrada", 404);
+        };
+
+        const attachmentsCreate = await Promise.all(uploads.map(async upload => {
+            const filename = upload?.filename || upload?.link_name;
+            const type = upload?.filename ? "file" : "link";
+            let attachment;
+            let attachmentName;
+
+            if(!filename || type === "link" && !upload.url_link) {
+                return;
+            };
+
+            // Verificar se a extensão é permitida
+            if(type === "file") {
+                const fileExtension = filename.substring(filename.lastIndexOf(".")).toLowerCase();
+                if(!allowedExtensions.includes(fileExtension)) {
+                    return;
+                }
+
+                attachment = await diskStorage.saveFile(filename);
+
+                const nameWithoutExtension = filename.substring(0, filename.lastIndexOf("."));
+                const firstDashIndex = nameWithoutExtension.indexOf("-");
+                attachmentName = Buffer.from(nameWithoutExtension.substring(firstDashIndex + 1).trim(), 'latin1').toString('utf-8');
+            }
+
+            return {
+                name: type === "file" ? attachmentName : filename,
+                type,
+                attachment: type === "file" ? attachment : upload.url_link,
+                publication_id,
+                domain_id: publication.domain_id
+            };
+        }));
+
+        const filteredAttachments = attachmentsCreate.filter(attachment => attachment !== undefined);
+
+        return await this.publicationRepository.createAttachments(filteredAttachments);
+    }
 }
 
 module.exports = PublicationsService;

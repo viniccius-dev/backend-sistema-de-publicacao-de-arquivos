@@ -33,6 +33,12 @@ class PublicationRepository {
         const publicationUpdated = await knex("publications").update(publication).where({ id: publication.id });
 
         return publicationUpdated;
+    };
+
+    async createAttachments(filteredAttachments) {
+        const attachments = await knex("attachments").insert(filteredAttachments);
+
+        return attachments;
     }
 };
 
