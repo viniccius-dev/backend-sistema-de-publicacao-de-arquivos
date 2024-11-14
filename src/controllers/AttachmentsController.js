@@ -14,6 +14,17 @@ class AttachmentsController {
         await publicationsService.attachmentsCreate({ publication_id, domain_id, uploads });
 
         return response.json({ message: "Anexo(s) cadastrado(s) com sucesso." });
+    };
+
+    async delete(request, response) {
+        const { domain_id } = request.user;
+        const { attachments } = request.body;
+
+        const publicationRepository = new PublicationRepository();
+        const publicationsService = new PublicationsService(publicationRepository);
+        await publicationsService.attachmentsDelete({ domain_id, attachments });
+
+        return response.json({ message: "Anexo deletado com sucesso." });
     }
 };
 

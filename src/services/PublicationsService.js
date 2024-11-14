@@ -119,6 +119,28 @@ class PublicationsService {
         const filteredAttachments = attachmentsCreate.filter(attachment => attachment !== undefined);
 
         return await this.publicationRepository.createAttachments(filteredAttachments);
+    };
+
+    async attachmentsDelete({ domain_id, attachments }) {
+        const attachmentDelete = await Promise.all(attachments.map(async attachment => {
+            const file = await this.publicationRepository.findAttachmentById(attachment);
+
+            if(!file || domain_id !== null && file?.domain_id !== Number(domain_id)) {
+                return;
+            };
+
+            const diskStorage = new DiskStorage();
+
+            if(file.type === "file") {
+                await diskStorage.deleteFile(file.attachment);
+            };
+            
+            await this.publicationRepository.deleteAttachments(file.id);
+
+            return file;
+        }));
+
+        return attachmentDelete;
     }
 }
 
