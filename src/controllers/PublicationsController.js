@@ -38,7 +38,9 @@ class PublicationsController {
         });
 
         return response.json({ message: "Publicação atualizada com sucesso." });
-    }
+    };
+
+    // TODO: Endpoint delete
 };
 
 module.exports = PublicationsController;
