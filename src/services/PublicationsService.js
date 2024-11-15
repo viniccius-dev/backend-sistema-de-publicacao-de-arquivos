@@ -72,6 +72,21 @@ class PublicationsService {
         return publicationUpdated;
     };
 
+    async publicationDelete({ publication_id, domain_id }) {
+        const publication = await this.publicationRepository.findByIdAndDomain({ publication_id, domain_id });
+
+        if(!publication) {
+            throw new AppError("Publicação não encontrada.", 404);
+        };
+
+        const getAttachments = await this.publicationRepository.getAttachments({ publication_id });
+        const attachments = getAttachments.map(attachment => String(attachment.id));
+
+        await this.attachmentsDelete({ domain_id, attachments });
+
+        return await this.publicationRepository.delete(publication.id);
+    }
+
     async attachmentsCreate({ publication_id, domain_id, uploads }) {
         const allowedExtensions = [".pdf", ".doc", ".docx", ".xls", ".xlsx", ".zip", ".ppt", ".pptx", ".png", ".jpg"];
 

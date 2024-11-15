@@ -40,7 +40,16 @@ class PublicationsController {
         return response.json({ message: "Publicação atualizada com sucesso." });
     };
 
-    // TODO: Endpoint delete
+    async delete(request, response) {
+        const { publication_id } = request.params;
+        const { domain_id } = request.user;
+
+        const publicationRepository = new PublicationRepository();
+        const publicationsService = new PublicationsService(publicationRepository);
+        await publicationsService.publicationDelete({ publication_id, domain_id });
+
+        return response.json({ message: "Publicação deletada com sucesso." });
+    }
 };
 
 module.exports = PublicationsController;

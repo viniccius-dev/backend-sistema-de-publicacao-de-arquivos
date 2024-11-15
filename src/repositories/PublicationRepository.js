@@ -35,6 +35,10 @@ class PublicationRepository {
         return publicationUpdated;
     };
 
+    async delete(id) {
+        return await knex("publications").where({ id }).delete();
+    }
+
     async findAttachmentById(id) {
         const attachment = await knex("attachments").where({ id }).first();
 
