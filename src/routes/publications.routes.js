@@ -14,6 +14,7 @@ const attachmentsController = new AttachmentsController();
 
 publicationsRoutes.use(ensureAuthenticated);
 
+publicationsRoutes.get("/attachments/:publication_id", attachmentsController.index);
 publicationsRoutes.post("/attachments/:publication_id", upload.array("attachment"), attachmentsController.create);
 publicationsRoutes.delete("/attachments", attachmentsController.delete);
 

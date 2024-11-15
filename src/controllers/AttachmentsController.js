@@ -25,6 +25,15 @@ class AttachmentsController {
         await publicationsService.attachmentsDelete({ domain_id, attachments });
 
         return response.json({ message: "Anexo deletado com sucesso." });
+    };
+
+    async index(request, response) {
+        const { publication_id } = request.params;
+
+        const publicationRepository = new PublicationRepository();
+        const attachments = await publicationRepository.getAttachments({ publication_id });
+
+        return response.json(attachments);
     }
 };
 

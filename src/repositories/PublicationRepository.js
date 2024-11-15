@@ -41,6 +41,26 @@ class PublicationRepository {
         return attachment;
     };
 
+    async getAttachments({ domain_id, publication_id }) {
+        const query = knex("attachments").orderBy("id", "desc");
+
+        if(domain_id) {
+            query.where({ domain_id });
+        };
+
+        if(publication_id) {
+            query.where({ publication_id });
+        };
+
+        try {
+            const attachments = await query;
+            return attachments;
+        } catch (err) {
+            console.error(err);
+            throw err;
+        }
+    };
+
     async createAttachments(filteredAttachments) {
         const attachments = await knex("attachments").insert(filteredAttachments);
 
@@ -49,7 +69,7 @@ class PublicationRepository {
 
     async deleteAttachments(id) {
         return await knex("attachments").where({ id }).delete();
-    }
+    };
 };
 
 module.exports = PublicationRepository;
