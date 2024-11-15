@@ -12,6 +12,8 @@ const ensureAuthenticated = require("../middlewares/ensureAuthenticated");
 const publicationsController = new PublicationsController();
 const attachmentsController = new AttachmentsController();
 
+publicationsRoutes.get("/", publicationsController.index);
+
 publicationsRoutes.use(ensureAuthenticated);
 
 publicationsRoutes.get("/attachments/:publication_id", attachmentsController.index);

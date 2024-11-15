@@ -37,7 +37,83 @@ class PublicationRepository {
 
     async delete(id) {
         return await knex("publications").where({ id }).delete();
-    }
+    };
+
+    async getBids({ domain_id, types, years, domains, searchText }) {
+        const query = knex("publications")
+            .select(
+                'publications.id as publication_id',
+                'number',
+                'date',
+                'description',
+                'updated_at',
+                'publications.domain_id',
+                'domains.domain_name',
+                'publications.type_of_publication_id',
+                'types_of_publication.name',
+                'types_of_publication.number_title',
+                'types_of_publication.date_title',
+                'types_of_publication.description_title',
+                'types_of_publication.file_title',
+                knex.raw("STRFTIME('%Y', updated_at) as publication_year"),
+                knex.raw("COALESCE(GROUP_CONCAT(JSON_OBJECT('name', attachments.name, 'attachment', attachments.attachment) ORDER BY attachments.id DESC), '') as attachments")
+            )
+            .whereLike("description", `%${searchText}%`)
+            .orderBy("updated_at", "desc")
+            .leftJoin("domains", "publications.domain_id", "domains.id")
+            .leftJoin("attachments", "publications.id", "attachments.publication_id")
+            .leftJoin("types_of_publication", "publications.type_of_publication_id", "types_of_publication.id")
+            .groupBy(
+                'publications.id',
+                'number',
+                'date',
+                'description',
+                'updated_at',
+                'publications.domain_id',
+                'domains.domain_name',
+                'publications.type_of_publication_id',
+                'types_of_publication.name',
+                'types_of_publication.number_title',
+                'types_of_publication.date_title',
+                'types_of_publication.description_title',
+                'types_of_publication.file_title',
+            );
+
+        if(domain_id) {
+            query.where({ 'publications.domain_id': domain_id });
+        };
+
+        if(types && types.length) {
+            const typesArray = types.split(',');
+            query.whereIn('types_of_publication.name', typesArray);
+        };
+
+        if(years && years.length) {
+            const yearsArray = years.split(',');
+            query.whereIn(knex.raw("STRFTIME('%Y', publications.updated_at)"), yearsArray);
+        };
+
+        if(domains && domains.length) {
+            const domainsArray = domains.split(",");
+            query.whereIn("domains.domain_name", domainsArray);
+        };
+
+        try {
+            const publications = await query;
+
+            const publicationsWithAttachments = publications.map(publication => {
+                publication.attachments = publication.attachments
+                    ? JSON.parse(`[${publication.attachments}]`)
+                    : [];
+                return publication;
+            });
+
+            return publicationsWithAttachments;
+        } catch (err) {
+            console.error(err);
+            throw err;
+        }
+    };
 
     async findAttachmentById(id) {
         const attachment = await knex("attachments").where({ id }).first();

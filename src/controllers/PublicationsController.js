@@ -1,6 +1,9 @@
+const { verify } = require("jsonwebtoken");
+
 const PublicationRepository = require("../repositories/PublicationRepository");
 const PublicationsService = require("../services/PublicationsService");
 const AppError = require("../utils/AppError");
+const authConfig = require("../configs/auth");
 
 class PublicationsController {
     async create(request, response) {
@@ -49,6 +52,29 @@ class PublicationsController {
         await publicationsService.publicationDelete({ publication_id, domain_id });
 
         return response.json({ message: "Publicação deletada com sucesso." });
+    };
+
+    async index(request, response) {
+        let domain_id = null;
+        const { types, years, domains, searchText } = request.query;
+        const authHeader = request.headers.authorization;
+
+        if(authHeader) {
+            const [, token] = authHeader.split(" ");
+
+            try {
+                const { domain_id: domainId } = verify(token, authConfig.jwt.secret);
+
+                domain_id = domainId;
+            } catch {
+                throw new AppError("JWT Token Inválido", 401);
+            };
+        };
+
+        const publicationRepository = new PublicationRepository();
+        const publications = await publicationRepository.getBids({ domain_id, types, years, domains, searchText });
+
+        return response.json(publications);
     }
 };
 
