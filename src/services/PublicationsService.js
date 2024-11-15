@@ -11,6 +11,8 @@ class PublicationsService {
         this.publicationRepository = publicationRepository;
     }
 
+    /* Publications */
+
     async publicationCreate({ type_of_publication_id, number, date, description, domain_id }) {
         if(!type_of_publication_id || !domain_id) {
             throw new AppError("Favor inserir todas as informações solicitadas.");
@@ -96,6 +98,8 @@ class PublicationsService {
 
         return publication;
     }
+
+    /* Attachments */
 
     async attachmentsCreate({ publication_id, domain_id, uploads }) {
         const allowedExtensions = [".pdf", ".doc", ".docx", ".xls", ".xlsx", ".zip", ".ppt", ".pptx", ".png", ".jpg"];

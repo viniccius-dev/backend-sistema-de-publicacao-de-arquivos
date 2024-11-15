@@ -20,6 +20,8 @@ publicationsRoutes.get("/attachments/:publication_id", attachmentsController.ind
 publicationsRoutes.post("/attachments/:publication_id", upload.array("attachment"), attachmentsController.create);
 publicationsRoutes.delete("/attachments", attachmentsController.delete);
 
+publicationsRoutes.get("/filters", publicationsController.filters);
+
 publicationsRoutes.post("/", publicationsController.create);
 publicationsRoutes.put("/:publication_id", publicationsController.update);
 publicationsRoutes.delete("/:publication_id", publicationsController.delete);

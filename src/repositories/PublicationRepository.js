@@ -1,6 +1,9 @@
 const knex = require("../database/knex");
 
 class PublicationRepository {
+
+    /* Publications */
+
     async findByIdAndDomain({ publication_id, domain_id }) {
         const query = knex("publications").where({ id: publication_id }).first();
 
@@ -115,6 +118,8 @@ class PublicationRepository {
         }
     };
 
+    /* Attachments */
+
     async findAttachmentById(id) {
         const attachment = await knex("attachments").where({ id }).first();
 
@@ -149,6 +154,44 @@ class PublicationRepository {
 
     async deleteAttachments(id) {
         return await knex("attachments").where({ id }).delete();
+    };
+
+    /* Filters */
+
+    async getTypes(domain_id) {
+        const query = knex("publications")
+            .distinct("types_of_publication.name")
+            .select('types_of_publication.name')
+            .orderBy("types_of_publication.name")
+            .leftJoin("types_of_publication", "publications.type_of_publication_id", "types_of_publication.id");
+
+        if(domain_id) {
+            query.where({ 'publications.domain_id': domain_id });
+        };
+
+        const result = await query;
+
+        return result.map(row => row.name)
+    };
+
+    async getYears(domain_id) {
+        const query = knex("publications")
+            .select(knex.raw("STRFTIME('%Y', updated_at) as publication_year"))
+            .distinct(knex.raw("STRFTIME('%Y', publications.updated_at)"))
+            .orderBy(knex.raw("STRFTIME('%Y', publications.updated_at)"), "desc");
+
+        if(domain_id) {
+            query.where({ domain_id });
+        };
+
+        const result = await query;
+
+        return result.map(row => row.publication_year);
+    };
+
+    async getDomains() {
+        const result = await knex('domains').distinct('domain_name').orderBy('domain_name');
+        return result.map(row => row.domain_name);
     };
 };
 

@@ -86,6 +86,18 @@ class PublicationsController {
         const publication = await publicationsService.showPublication({ publication_id, domain_id });
 
         return response.json(publication);
+    };
+
+    async filters(request, response) {
+        const { domain_id } = request.user;
+
+        const publicationRepository = new PublicationRepository();
+
+        const types = await publicationRepository.getTypes(domain_id);
+        const years = await publicationRepository.getYears(domain_id);
+        const domains = await publicationRepository.getDomains();
+
+        return response.json({ types, years, domains });
     }
 };
 
