@@ -2,14 +2,41 @@ require("express-async-errors");
 require("dotenv/config");
 
 const express = require("express");
+const cors = require("cors");
 
 const AppError = require("./utils/AppError");
 const routes = require("./routes");
 const uploadConfig = require("./configs/upload");
+const knex = require("./database/knex");
+
+async function getAllowedDomains() {
+    try {
+        const domains = await knex("domains").pluck('url');
+        domains.push("http://localhost:5173");
+        return domains;
+    } catch (error) {
+        console.error("Error fetching domains:", error);
+        return [];
+    }
+}
 
 (async () => {
+    const allowedDomains = await getAllowedDomains();
+
     const app = express();
 
+    const corsOptions = {
+        origin: function (origin, callback) {
+            // Se a origem não for fornecida (por exemplo, para requisições feitas localmente) ou está incluída na lista de permitidos
+            if (!origin || allowedDomains.includes(origin)) {
+                callback(null, true);
+            } else {
+                callback(new Error('Not allowed by CORS'));
+            }
+        }
+    };
+
+    app.use(cors(corsOptions));
     app.use(express.json());
     app.use(routes);
 
