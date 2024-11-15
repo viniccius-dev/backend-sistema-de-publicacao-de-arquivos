@@ -1,5 +1,8 @@
 const AppError = require("../utils/AppError");
 
+const PublicationRepository = require("../repositories/PublicationRepository");
+const PublicationsService = require("./PublicationsService");
+
 class DomainsService {
     constructor(domainRepository) {
         this.domainRepository = domainRepository;
@@ -43,7 +46,13 @@ class DomainsService {
             throw new AppError("Domínio não encontrado", 404);
         };
 
-        //TODO: Adicionar exclusão de arquivos vinculados ao domínio
+        const publicationRepository = new PublicationRepository();
+        const publicationsService = new PublicationsService(publicationRepository);
+
+        const getAttachments = await publicationRepository.getAttachments({ domain_id });
+        const attachmentsId = getAttachments.map(attachment => String(attachment.id));
+
+        await publicationsService.attachmentsDelete({ domain_id, attachments: attachmentsId });
 
         return await this.domainRepository.delete(domain_id);
     };
