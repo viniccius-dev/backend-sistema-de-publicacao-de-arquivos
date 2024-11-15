@@ -85,6 +85,16 @@ class PublicationsService {
         await this.attachmentsDelete({ domain_id, attachments });
 
         return await this.publicationRepository.delete(publication.id);
+    };
+
+    async showPublication({ publication_id, domain_id }) {
+        const publication = await this.publicationRepository.findByIdAndDomain({ publication_id, domain_id });
+
+        if(!publication) {
+            throw new AppError("Publicação não encontrada.", 404);
+        };
+
+        return publication;
     }
 
     async attachmentsCreate({ publication_id, domain_id, uploads }) {
@@ -156,7 +166,7 @@ class PublicationsService {
         }));
 
         return attachmentDelete;
-    }
+    };
 }
 
 module.exports = PublicationsService;

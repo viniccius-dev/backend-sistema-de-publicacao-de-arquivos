@@ -23,5 +23,6 @@ publicationsRoutes.delete("/attachments", attachmentsController.delete);
 publicationsRoutes.post("/", publicationsController.create);
 publicationsRoutes.put("/:publication_id", publicationsController.update);
 publicationsRoutes.delete("/:publication_id", publicationsController.delete);
+publicationsRoutes.get("/:publication_id", publicationsController.show);
 
 module.exports = publicationsRoutes;

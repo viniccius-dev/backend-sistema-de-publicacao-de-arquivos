@@ -102,7 +102,7 @@ class PublicationRepository {
             const publications = await query;
 
             const publicationsWithAttachments = publications.map(publication => {
-                publication.attachments = publication.attachments
+                publication.attachments = JSON.parse(publication.attachments).name
                     ? JSON.parse(`[${publication.attachments}]`)
                     : [];
                 return publication;
