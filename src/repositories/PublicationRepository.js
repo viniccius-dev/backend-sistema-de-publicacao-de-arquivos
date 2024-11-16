@@ -5,7 +5,36 @@ class PublicationRepository {
     /* Publications */
 
     async findByIdAndDomain({ publication_id, domain_id }) {
-        const query = knex("publications").where({ id: publication_id }).first();
+        const query = knex("publications")
+            .where({ "publications.id": publication_id }) 
+            .select(
+                'publications.id as id',
+                'number',
+                'date',
+                'description',
+                'created_at',
+                'types_of_publication.id as type_id',
+                'types_of_publication.name',
+                'types_of_publication.number_title',
+                'types_of_publication.date_title',
+                'types_of_publication.description_title',
+                'types_of_publication.file_title',
+            )
+            .leftJoin("types_of_publication", "publications.type_of_publication_id", "types_of_publication.id")
+            .groupBy(
+                'publications.id',
+                'number',
+                'date',
+                'description',
+                'created_at',
+                'publications.type_of_publication_id',
+                'types_of_publication.name',
+                'types_of_publication.number_title',
+                'types_of_publication.date_title',
+                'types_of_publication.description_title',
+                'types_of_publication.file_title',
+            )
+            .first();
 
         if(domain_id) {
             query.where({ domain_id });
@@ -49,7 +78,7 @@ class PublicationRepository {
                 'number',
                 'date',
                 'description',
-                'updated_at',
+                'created_at',
                 'publications.domain_id',
                 'domains.domain_name',
                 'publications.type_of_publication_id',
@@ -58,11 +87,11 @@ class PublicationRepository {
                 'types_of_publication.date_title',
                 'types_of_publication.description_title',
                 'types_of_publication.file_title',
-                knex.raw("STRFTIME('%Y', updated_at) as publication_year"),
+                knex.raw("STRFTIME('%Y', created_at) as publication_year"),
                 knex.raw("COALESCE(GROUP_CONCAT(JSON_OBJECT('name', attachments.name, 'attachment', attachments.attachment) ORDER BY attachments.id DESC), '') as attachments")
             )
             .whereLike("description", `%${searchText}%`)
-            .orderBy("updated_at", "desc")
+            .orderBy("created_at", "desc")
             .leftJoin("domains", "publications.domain_id", "domains.id")
             .leftJoin("attachments", "publications.id", "attachments.publication_id")
             .leftJoin("types_of_publication", "publications.type_of_publication_id", "types_of_publication.id")
@@ -71,7 +100,7 @@ class PublicationRepository {
                 'number',
                 'date',
                 'description',
-                'updated_at',
+                'created_at',
                 'publications.domain_id',
                 'domains.domain_name',
                 'publications.type_of_publication_id',
@@ -93,7 +122,7 @@ class PublicationRepository {
 
         if(years && years.length) {
             const yearsArray = years.split(',');
-            query.whereIn(knex.raw("STRFTIME('%Y', publications.updated_at)"), yearsArray);
+            query.whereIn(knex.raw("STRFTIME('%Y', publications.created_at)"), yearsArray);
         };
 
         if(domains && domains.length) {
@@ -176,9 +205,9 @@ class PublicationRepository {
 
     async getYears(domain_id) {
         const query = knex("publications")
-            .select(knex.raw("STRFTIME('%Y', updated_at) as publication_year"))
-            .distinct(knex.raw("STRFTIME('%Y', publications.updated_at)"))
-            .orderBy(knex.raw("STRFTIME('%Y', publications.updated_at)"), "desc");
+            .select(knex.raw("STRFTIME('%Y', created_at) as publication_year"))
+            .distinct(knex.raw("STRFTIME('%Y', publications.created_at)"))
+            .orderBy(knex.raw("STRFTIME('%Y', publications.created_at)"), "desc");
 
         if(domain_id) {
             query.where({ domain_id });
