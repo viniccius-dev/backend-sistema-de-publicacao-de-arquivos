@@ -72,7 +72,7 @@ class PublicationsController {
         };
 
         const publicationRepository = new PublicationRepository();
-        const publications = await publicationRepository.getBids({ domain_id, types, years, domains, searchText });
+        const publications = await publicationRepository.getPublications({ domain_id, types, years, domains, searchText });
 
         return response.json(publications);
     };

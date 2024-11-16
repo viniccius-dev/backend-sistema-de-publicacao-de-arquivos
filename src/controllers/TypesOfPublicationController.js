@@ -15,7 +15,7 @@ class TypesOfPublicationController {
             file_title
         });
 
-        return response.status(201).json({ message: "Perfil criado com sucesso" });
+        return response.status(201).json({ message: "Tipo de publicação criado com sucesso" });
     };
 
     async update(request, response) {

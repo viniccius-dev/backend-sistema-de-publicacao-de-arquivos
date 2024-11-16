@@ -12,6 +12,7 @@ class PublicationRepository {
                 'number',
                 'date',
                 'description',
+                'domain_id',
                 'created_at',
                 'types_of_publication.id as type_id',
                 'types_of_publication.name',
@@ -26,6 +27,7 @@ class PublicationRepository {
                 'number',
                 'date',
                 'description',
+                'domain_id',
                 'created_at',
                 'publications.type_of_publication_id',
                 'types_of_publication.name',
@@ -71,7 +73,7 @@ class PublicationRepository {
         return await knex("publications").where({ id }).delete();
     };
 
-    async getBids({ domain_id, types, years, domains, searchText }) {
+    async getPublications({ domain_id, types, years, domains, searchText }) {
         const query = knex("publications")
             .select(
                 'publications.id as publication_id',
@@ -132,10 +134,11 @@ class PublicationRepository {
 
         try {
             const publications = await query;
-
+      
+            // Transforma a string de objetos JSON em um array de objetos
             const publicationsWithAttachments = publications.map(publication => {
-                publication.attachments = JSON.parse(publication.attachments).name
-                    ? JSON.parse(`[${publication.attachments}]`)
+                publication.attachments = publication.attachments 
+                    ? JSON.parse(`[${publication.attachments}]`) // Converte a string JSON para array de objetos
                     : [];
                 return publication;
             });
