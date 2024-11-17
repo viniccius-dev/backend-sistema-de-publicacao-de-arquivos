@@ -44,7 +44,7 @@ class PublicationsService {
     };
 
     async publicationUpdate({ publication_id, type_of_publication_id, number, date, description, domain_id }) {
-        const publication = await this.publicationRepository.findByIdAndDomain({ publication_id, domain_id });
+        const publication = await this.publicationRepository.findByIdAndDomainSimple({ publication_id, domain_id });
 
         if(!publication) {
             throw new AppError("Publicação não encontrada.", 404);

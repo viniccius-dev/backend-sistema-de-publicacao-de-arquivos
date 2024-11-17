@@ -4,6 +4,22 @@ class PublicationRepository {
 
     /* Publications */
 
+    async findByIdAndDomainSimple({ publication_id, domain_id }) {
+        const query = knex("publications").where({ id: publication_id }).first();
+
+        if(domain_id) {
+            query.where({ domain_id });
+        };
+
+        try {
+            const publication = await query;
+            return publication;
+        } catch (err) {
+            console.error(err);
+            throw err;
+        };
+    }
+
     async findByIdAndDomain({ publication_id, domain_id }) {
         const query = knex("publications")
             .where({ "publications.id": publication_id }) 
@@ -92,7 +108,9 @@ class PublicationRepository {
                 knex.raw("STRFTIME('%Y', created_at) as publication_year"),
                 knex.raw("COALESCE(GROUP_CONCAT(JSON_OBJECT('name', attachments.name, 'attachment', attachments.attachment) ORDER BY attachments.id DESC), '') as attachments")
             )
-            .whereLike("description", `%${searchText}%`)
+            .where(function () {
+                this.whereLike("description", `%${searchText}%`).orWhereNull("description");
+            })
             .orderBy("created_at", "desc")
             .leftJoin("domains", "publications.domain_id", "domains.id")
             .leftJoin("attachments", "publications.id", "attachments.publication_id")
