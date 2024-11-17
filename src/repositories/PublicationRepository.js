@@ -18,7 +18,7 @@ class PublicationRepository {
             console.error(err);
             throw err;
         };
-    }
+    };
 
     async findByIdAndDomain({ publication_id, domain_id }) {
         const query = knex("publications")
@@ -65,6 +65,12 @@ class PublicationRepository {
             console.error(err);
             throw err;
         };
+    };
+
+    async findByType(type_of_publication_id) {
+        const publication = await knex("publications").where({ type_of_publication_id });
+
+        return publication;
     };
 
     async create({ type_of_publication_id, number, date, description, domain_id }) {

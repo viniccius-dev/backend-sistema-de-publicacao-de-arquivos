@@ -1,5 +1,7 @@
 const AppError = require("../utils/AppError");
 
+const PublicationRepository = require("../repositories/PublicationRepository");
+
 class TypesOfPublicationService {
     constructor(typesOfPublicationRepository) {
         this.typesOfPublicationRepository = typesOfPublicationRepository;
@@ -63,6 +65,13 @@ class TypesOfPublicationService {
 
         if(!type) {
             throw new AppError("Tipo de publicação não encontrado.", 404);
+        };
+
+        const publicationRepository = new PublicationRepository();
+        const publicationsWithType = await publicationRepository.findByType(type.id);
+
+        if(publicationsWithType.length > 0) {
+            throw new AppError("O tipo não pode ser deletado. Existem publicações desse tipo registradas no sistema", 409);
         };
 
         return await this.typesOfPublicationRepository.delete(type.id);
