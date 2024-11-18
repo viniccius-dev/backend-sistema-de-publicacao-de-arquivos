@@ -12,6 +12,7 @@ const knex = require("./database/knex");
 async function getAllowedDomains() {
     try {
         const domains = await knex("domains").pluck('url');
+        domains.push("https://sistema-de-arquivos-agencianew.netlify.app");
         domains.push("http://localhost:5173");
         return domains;
     } catch (error) {
