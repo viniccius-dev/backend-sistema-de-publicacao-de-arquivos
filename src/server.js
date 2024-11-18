@@ -59,6 +59,7 @@ async function getAllowedDomains() {
         });
     });
 
-    const PORT = process.env.PORT || 3333;
+    // const PORT = process.env.PORT || 3333;
+    const PORT = 10000;
     app.listen(PORT, () => console.log(`Server is running ${PORT}`));
 })();
