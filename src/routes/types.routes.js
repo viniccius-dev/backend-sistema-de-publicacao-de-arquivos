@@ -8,10 +8,9 @@ const ensureAuthenticated = require("../middlewares/ensureAuthenticated");
 
 const typesOfPublicationController = new TypesOfPublicationController();
 
-typesOfPublicationRoutes.use(ensureAuthenticated);
-
 typesOfPublicationRoutes.get("/", typesOfPublicationController.index);
 
+typesOfPublicationRoutes.use(ensureAuthenticated);
 typesOfPublicationRoutes.use(verifyUserAuthorization());
 
 typesOfPublicationRoutes.post("/", typesOfPublicationController.create);
