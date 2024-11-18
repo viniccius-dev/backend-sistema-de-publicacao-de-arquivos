@@ -13,6 +13,7 @@ async function getAllowedDomains() {
     try {
         const domains = await knex("domains").pluck('url');
         domains.push("https://sistema-de-arquivos-agencianew.netlify.app");
+        domains.push("http://127.0.0.1:5500");
         domains.push("http://localhost:5173");
         return domains;
     } catch (error) {
