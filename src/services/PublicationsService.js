@@ -101,7 +101,7 @@ class PublicationsService {
 
     /* Attachments */
 
-    async attachmentsCreate({ publication_id, domain_id, uploads }) {
+    async attachmentsCreate({ publication_id, domain_id, uploads, type }) {
         const allowedExtensions = [".pdf", ".doc", ".docx", ".xls", ".xlsx", ".zip", ".ppt", ".pptx", ".png", ".jpg"];
 
         const diskStorage = new DiskStorage();
@@ -112,34 +112,32 @@ class PublicationsService {
             throw new AppError("Publicação vinculada não encontrada", 404);
         };
 
+        if(!type || type === "main" && uploads.length > 1) {
+            throw new AppError("Erro ao adicionar os arquivos. Verifique os anexos ou tente novamente com outros arquivos.");
+        }
+
         const attachmentsCreate = await Promise.all(uploads.map(async upload => {
-            const filename = upload?.filename || upload?.link_name;
-            const type = upload?.filename ? "file" : "link";
+            const filename = upload?.filename;
+            // const type = upload?.filename ? "file" : "link";
             let attachment;
             let attachmentName;
 
-            if(!filename || type === "link" && !upload.url_link) {
-                return;
-            };
-
             // Verificar se a extensão é permitida
-            if(type === "file") {
-                const fileExtension = filename.substring(filename.lastIndexOf(".")).toLowerCase();
-                if(!allowedExtensions.includes(fileExtension)) {
-                    return;
-                }
-
-                attachment = await diskStorage.saveFile(filename);
-
-                const nameWithoutExtension = filename.substring(0, filename.lastIndexOf("."));
-                const firstDashIndex = nameWithoutExtension.indexOf("-");
-                attachmentName = Buffer.from(nameWithoutExtension.substring(firstDashIndex + 1).trim(), 'latin1').toString('utf-8');
+            const fileExtension = filename.substring(filename.lastIndexOf(".")).toLowerCase();
+            if(!allowedExtensions.includes(fileExtension)) {
+                return;
             }
 
+            attachment = await diskStorage.saveFile(filename);
+
+            const nameWithoutExtension = filename.substring(0, filename.lastIndexOf("."));
+            const firstDashIndex = nameWithoutExtension.indexOf("-");
+            attachmentName = Buffer.from(nameWithoutExtension.substring(firstDashIndex + 1).trim(), 'latin1').toString('utf-8');
+
             return {
-                name: type === "file" ? attachmentName : filename,
+                name: attachmentName,
                 type,
-                attachment: type === "file" ? attachment : upload.url_link,
+                attachment,
                 publication_id,
                 domain_id: publication.domain_id
             };
@@ -160,9 +158,7 @@ class PublicationsService {
 
             const diskStorage = new DiskStorage();
 
-            if(file.type === "file") {
-                await diskStorage.deleteFile(file.attachment);
-            };
+            await diskStorage.deleteFile(file.attachment);
             
             await this.publicationRepository.deleteAttachments(file.id);
 
