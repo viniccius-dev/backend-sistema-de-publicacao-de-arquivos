@@ -111,13 +111,14 @@ class PublicationRepository {
                 'types_of_publication.date_title',
                 'types_of_publication.description_title',
                 'types_of_publication.file_title',
-                knex.raw("STRFTIME('%Y', updated_at) as publication_year"),
+                knex.raw("SUBSTR(date, 7, 4) as publication_year"),
                 knex.raw("COALESCE(GROUP_CONCAT(JSON_OBJECT('name', attachments.name, 'attachment', attachments.attachment, 'type', attachments.type) ORDER BY attachments.id DESC), '') as attachments")
             )
             .where(function () {
                 this.whereLike("description", `%${searchText}%`).orWhereNull("description");
             })
-            .orderBy("updated_at", "desc")
+            .orderBy("number", "desc")
+            .orderBy(knex.raw("SUBSTR(date, 7, 4) || '-' || SUBSTR(date, 4, 2) || '-' || SUBSTR(date, 1, 2)"), "desc")
             .leftJoin("domains", "publications.domain_id", "domains.id")
             .leftJoin("attachments", "publications.id", "attachments.publication_id")
             .leftJoin("types_of_publication", "publications.type_of_publication_id", "types_of_publication.id")
@@ -148,7 +149,7 @@ class PublicationRepository {
 
         if(years && years.length) {
             const yearsArray = years.split(',');
-            query.whereIn(knex.raw("STRFTIME('%Y', publications.updated_at)"), yearsArray);
+            query.whereIn(knex.raw("STRFTIME('%Y', publications.date)"), yearsArray);
         };
 
         if(domains && domains.length) {
@@ -232,9 +233,9 @@ class PublicationRepository {
 
     async getYears(domain_id) {
         const query = knex("publications")
-            .select(knex.raw("STRFTIME('%Y', created_at) as publication_year"))
-            .distinct(knex.raw("STRFTIME('%Y', publications.updated_at)"))
-            .orderBy(knex.raw("STRFTIME('%Y', publications.updated_at)"), "desc");
+            .select(knex.raw("SUBSTR(date, 7, 4) as publication_year")) // Pega os 4 caracteres do ano
+            .distinct(knex.raw("SUBSTR(date, 7, 4)"))
+            .orderBy(knex.raw("SUBSTR(date, 7, 4)"), "desc");
 
         if(domain_id) {
             query.where({ domain_id });
