@@ -149,7 +149,7 @@ class PublicationRepository {
 
         if(years && years.length) {
             const yearsArray = years.split(',');
-            query.whereIn(knex.raw("STRFTIME('%Y', publications.date)"), yearsArray);
+            query.whereIn(knex.raw("SUBSTR(date, 7, 4)"), yearsArray);
         };
 
         if(domains && domains.length) {
