@@ -33,7 +33,7 @@ class TypesOfPublicationRepository {
     };
 
     async getTypes() {
-        const typesOfPublication = await knex("types_of_publication");
+        const typesOfPublication = await knex("types_of_publication").orderBy("name", "asc");
 
         return typesOfPublication;
     };
