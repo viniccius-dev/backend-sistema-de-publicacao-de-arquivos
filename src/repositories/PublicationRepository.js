@@ -95,86 +95,130 @@ class PublicationRepository {
         return await knex("publications").where({ id }).delete();
     };
 
-    async getPublications({ domain_id, types, years, domains, searchText }) {
-        const query = knex("publications")
+    async getPublications({
+        domain_id, 
+        types, 
+        years, 
+        domains, 
+        searchText, 
+        startYear, 
+        endYear, 
+        processNumber, 
+        page 
+        }) {
+        function normalize(str) {
+            return (str || '')
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '');
+        }
+
+        const searchTextNormalized = normalize(searchText);
+
+        const baseQuery = knex("publications")
             .select(
-                'publications.id as publication_id',
-                'number',
-                'date',
-                'description',
-                'updated_at',
-                'publications.domain_id',
-                'domains.domain_name',
-                'publications.type_of_publication_id',
-                'types_of_publication.name',
-                'types_of_publication.number_title',
-                'types_of_publication.date_title',
-                'types_of_publication.description_title',
-                'types_of_publication.file_title',
-                knex.raw("SUBSTR(date, 7, 4) as publication_year"),
-                knex.raw("COALESCE(GROUP_CONCAT(JSON_OBJECT('name', attachments.name, 'attachment', attachments.attachment, 'type', attachments.type) ORDER BY attachments.id DESC), '') as attachments")
+            'publications.id as publication_id',
+            'number',
+            'date',
+            'description',
+            'updated_at',
+            'publications.domain_id',
+            'domains.domain_name',
+            'publications.type_of_publication_id',
+            'types_of_publication.name',
+            'types_of_publication.number_title',
+            'types_of_publication.date_title',
+            'types_of_publication.description_title',
+            'types_of_publication.file_title',
+            knex.raw("CAST(SUBSTR(date, 7, 4) AS INTEGER) as publication_year"),
+            knex.raw(`
+                COALESCE(
+                GROUP_CONCAT(
+                JSON_OBJECT('name', attachments.name, 'attachment', attachments.attachment, 'type', attachments.type)
+                ORDER BY attachments.id DESC
+                ), 
+                '') as attachments
+            `)
             )
-            .where(function () {
-                this.whereLike("description", `%${searchText}%`).orWhereNull("description");
-            })
-            .orderBy("number", "desc")
-            .orderBy(knex.raw("SUBSTR(date, 7, 4) || '-' || SUBSTR(date, 4, 2) || '-' || SUBSTR(date, 1, 2)"), "desc")
+            .whereNotNull("description")
             .leftJoin("domains", "publications.domain_id", "domains.id")
             .leftJoin("attachments", "publications.id", "attachments.publication_id")
             .leftJoin("types_of_publication", "publications.type_of_publication_id", "types_of_publication.id")
             .groupBy(
-                'publications.id',
-                'number',
-                'date',
-                'description',
-                'updated_at',
-                'publications.domain_id',
-                'domains.domain_name',
-                'publications.type_of_publication_id',
-                'types_of_publication.name',
-                'types_of_publication.number_title',
-                'types_of_publication.date_title',
-                'types_of_publication.description_title',
-                'types_of_publication.file_title',
-            );
-
-        if(domain_id) {
-            query.where({ 'publications.domain_id': domain_id });
-        };
-
-        if(types && types.length) {
-            const typesArray = types.split(',');
-            query.whereIn('types_of_publication.name', typesArray);
-        };
-
-        if(years && years.length) {
-            const yearsArray = years.split(',');
-            query.whereIn(knex.raw("SUBSTR(date, 7, 4)"), yearsArray);
-        };
-
-        if(domains && domains.length) {
-            const domainsArray = domains.split(",");
-            query.whereIn("domains.domain_name", domainsArray);
-        };
-
-        try {
-            const publications = await query;
-      
-            // Transforma a string de objetos JSON em um array de objetos
-            const publicationsWithAttachments = publications.map(publication => {
-                publication.attachments = publication.attachments 
-                    ? JSON.parse(`[${publication.attachments}]`) // Converte a string JSON para array de objetos
-                    : [];
-                return publication;
+            'publications.id',
+            'number',
+            'date',
+            'description',
+            'updated_at',
+            'publications.domain_id',
+            'domains.domain_name',
+            'publications.type_of_publication_id',
+            'types_of_publication.name',
+            'types_of_publication.number_title',
+            'types_of_publication.date_title',
+            'types_of_publication.description_title',
+            'types_of_publication.file_title',
+            )
+            .orderBy("number", "desc")
+            .orderBy(knex.raw("SUBSTR(date, 7, 4) || '-' || SUBSTR(date, 4, 2) || '-' || SUBSTR(date, 1, 2)"), "desc")
+            .modify(qb => {
+            if (domain_id) qb.where({ 'publications.domain_id': domain_id });
+            if (types && types.length) {
+                const typesArray = types.split(',');
+                qb.whereIn('types_of_publication.name', typesArray);
+            }
+            if (years && years.length) {
+                const yearsArray = years.split(',').map(year => parseInt(year, 10));
+                qb.whereIn(knex.raw("CAST(SUBSTR(date, 7, 4) AS INTEGER)"), yearsArray);
+            } else if (startYear || endYear) {
+                const yearColumn = knex.raw("CAST(SUBSTR(date, 7, 4) AS INTEGER)");
+                if (startYear && endYear) qb.whereBetween(yearColumn, [startYear, endYear]);
+                else if (startYear) qb.where(yearColumn, '>=', startYear);
+                else qb.where(yearColumn, '<=', endYear);
+            }
+            if (domains && domains.length) {
+                const domainsArray = domains.split(",");
+                qb.whereIn("domains.domain_name", domainsArray);
+            }
+            if (processNumber) qb.where('number', 'like', `%${processNumber}%`);
             });
 
-            return publicationsWithAttachments;
+        try {
+            const allItems = await baseQuery; // pega todos
+            const normalizedItems = allItems.map(pub => {
+            pub.attachments = pub.attachments ? JSON.parse(`[${pub.attachments}]`) : [];
+            return pub;
+            });
+
+            // 🔹 Filtrar no Node, removendo acentos
+            const filteredItems = searchText
+            ? normalizedItems.filter(pub => {
+                const desc = normalize(pub.description);
+                return desc.includes(searchTextNormalized);
+                })
+            : normalizedItems;
+
+            if (page !== undefined && page !== null) {
+                const pageNumber = parseInt(page, 10) || 1;
+                const pageSize = 20;
+                const offset = (pageNumber - 1) * pageSize;
+                const paginated = filteredItems.slice(offset, offset + pageSize);
+                const totalPages = Math.ceil(filteredItems.length / pageSize);
+
+                return {
+                    totalItems: filteredItems.length,
+                    totalPages,
+                    currentPage: pageNumber,
+                    items: paginated
+            };
+            } else {
+                return filteredItems;
+            }
         } catch (err) {
             console.error(err);
             throw err;
         }
-    };
-
+    }
     /* Attachments */
 
     async findAttachmentById(id) {

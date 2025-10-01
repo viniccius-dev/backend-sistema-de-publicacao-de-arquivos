@@ -13,6 +13,12 @@ class DomainRepository {
         return domain;
     };
 
+    async findByName(domain_name) {
+        const domain = await knex("domains").where({ domain_name }).first();
+
+        return domain;
+    };
+
     async create({ domain_name, url }) {
         const [domainId] = await knex("domains").insert({
             domain_name,

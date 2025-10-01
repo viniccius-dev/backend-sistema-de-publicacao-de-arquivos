@@ -56,7 +56,16 @@ class PublicationsController {
 
     async index(request, response) {
         let domain_id = null;
-        const { types, years, domains, searchText } = request.query;
+        const { 
+            types, 
+            years, 
+            domains, 
+            searchText,
+            startYear,
+            endYear,
+            processNumber,
+            page 
+        } = request.query;
         const authHeader = request.headers.authorization;
 
         if(authHeader) {
@@ -72,7 +81,17 @@ class PublicationsController {
         };
 
         const publicationRepository = new PublicationRepository();
-        const publications = await publicationRepository.getPublications({ domain_id, types, years, domains, searchText });
+        const publications = await publicationRepository.getPublications({
+            domain_id, 
+            types, 
+            years, 
+            domains, 
+            searchText,
+            startYear,
+            endYear,
+            processNumber,
+            page
+        });
 
         return response.json(publications);
     };
@@ -98,7 +117,7 @@ class PublicationsController {
         const domains = await publicationRepository.getDomains();
 
         return response.json({ types, years, domains });
-    }
+    };
 };
 
 module.exports = PublicationsController;
