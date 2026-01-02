@@ -1,2 +1,6 @@
 node_modules
 .env
+uploads
+apikey.json
+oauth_credentials.json
+tokens.json

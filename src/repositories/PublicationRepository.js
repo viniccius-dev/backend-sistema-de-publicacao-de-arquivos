@@ -218,7 +218,7 @@ class PublicationRepository {
             console.error(err);
             throw err;
         }
-    }
+    };
     /* Attachments */
 
     async findAttachmentById(id) {

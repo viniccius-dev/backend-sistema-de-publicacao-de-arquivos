@@ -42,7 +42,23 @@ class DomainRepository {
         const domains = await knex("domains").orderBy("domain_name");
 
         return domains;
+    };
+
+    async getAttachmentsByDomain(domain_id) {
+        return await knex("attachments").where({ domain_id }).select("attachment");
+    };
+
+    async findSettingByKey(key) {
+        const setting = await knex("system_settings").where(key).first();
+
+        return setting;
     }
+
+    async updateSystemSetting(setting) {
+        const updatedSetting = await knex("system_settings").update(setting).where({ key: setting.key });
+
+        return updatedSetting;
+    };
 }
 
 module.exports = DomainRepository;
