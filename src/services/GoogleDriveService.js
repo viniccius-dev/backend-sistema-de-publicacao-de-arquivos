@@ -1,86 +1,84 @@
-const fs = require("fs");
 const { google } = require("googleapis");
+const fs = require("fs");
 const axios = require("axios");
 
 class GoogleDriveService {
   constructor() {
-    const credentials = JSON.parse(fs.readFileSync("src/configs/oauth_credentials.json"));
-    const tokens = JSON.parse(fs.readFileSync("src/configs/tokens.json"));
-
-    const { client_id, client_secret, redirect_uris } = credentials.web;
-
-    this.oAuth2Client = new google.auth.OAuth2(
-      client_id,
-      client_secret,
-      redirect_uris[1]
+    this.oauth2Client = new google.auth.OAuth2(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET,
+      "https://developers.google.com/oauthplayground"
     );
 
-    this.oAuth2Client.setCredentials(tokens);
-
-    // Atualização automática de tokens
-    this.oAuth2Client.on("tokens", (newTokens) => {
-      const updated = { ...tokens, ...newTokens };
-      fs.writeFileSync("src/configs/tokens.json", JSON.stringify(updated, null, 2));
+    this.oauth2Client.setCredentials({
+      refresh_token: process.env.GOOGLE_REFRESH_TOKEN,
     });
   }
 
   async uploadLargeFile(filePath, fileName) {
-    const fileSize = fs.statSync(filePath).size;
+    const stats = fs.statSync(filePath);
+    const fileSize = stats.size;
+    const { token: accessToken } = await this.oauth2Client.getAccessToken();
 
-    const token = await this.oAuth2Client.getAccessToken();
+    // Tamanho do pedaço: 5MB (Deve ser múltiplo de 256KB por exigência do Google)
+    const CHUNK_SIZE = 5 * 1024 * 1024; 
 
-    // 1) Criar sessão de upload
-    const sessionRes = await axios.post(
-      "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable",
-      {
-        name: fileName,
-        parents: ["193cm4Lm7h_chDsSq2yIuVElF2zYx8b-6"]
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${token.token}`,
-          "Content-Type": "application/json; charset=UTF-8",
+    console.log(`Iniciando upload resiliente: ${fileName} (${(fileSize / 1024 / 1024 / 1024).toFixed(2)} GB)`);
+
+    try {
+      // 1. Solicitar URL de sessão Resumable
+      const sessionRes = await axios.post(
+        "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable",
+        {
+          name: fileName,
+          parents: [process.env.GOOGLE_FOLDER_ID],
         },
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json; charset=UTF-8",
+            "X-Upload-Content-Type": "application/zip",
+          },
+        }
+      );
+
+      const uploadUrl = sessionRes.headers.location;
+      let start = 0;
+
+      // 2. Loop de envio por pedaços (Chunks)
+      while (start < fileSize) {
+        const end = Math.min(start + CHUNK_SIZE, fileSize);
+        const contentLength = end - start;
+        
+        // Criar um stream apenas para o pedaço atual
+        const chunkStream = fs.createReadStream(filePath, { start, end: end - 1 });
+
+        try {
+          const response = await axios.put(uploadUrl, chunkStream, {
+            headers: {
+              "Content-Length": contentLength,
+              "Content-Range": `bytes ${start}-${end - 1}/${fileSize}`,
+            },
+          });
+
+          if (response.status === 200 || response.status === 201) {
+            console.log("Upload 100% concluído!");
+            return response.data;
+          }
+        } catch (err) {
+          // O Google retorna 308 Resume Incomplete quando o chunk é aceito mas o arquivo não acabou
+          if (err.response && err.response.status === 308) {
+            start = end;
+            const percentage = ((start / fileSize) * 100).toFixed(2);
+            console.log(`[Progresso] ${percentage}% enviado...`);
+          } else {
+            throw err;
+          }
+        }
       }
-    );
-
-    const uploadUrl = sessionRes.headers.location;
-    console.log("Sessão de upload criada:", uploadUrl);
-
-    // 2) Upload em partes
-    const chunkSize = 10 * 1024 * 1024; // 10MB por chunk
-    let start = 0;
-    let uploadedBytes = 0;
-
-    while (start < fileSize) {
-      const end = Math.min(start + chunkSize, fileSize);
-      const chunk = fs.createReadStream(filePath, { start, end: end - 1 });
-
-      const contentLength = end - start;
-      const contentRange = `bytes ${start}-${end - 1}/${fileSize}`;
-
-      const response = await axios.put(uploadUrl, chunk, {
-        headers: {
-          "Content-Length": contentLength,
-          "Content-Range": contentRange,
-        },
-        maxBodyLength: Infinity,
-        maxContentLength: Infinity,
-        validateStatus: (status) =>
-          (status >= 200 && status < 300) || status === 308, // 308 = parcial
-      });
-
-      uploadedBytes = end;
-      const progress = (uploadedBytes / fileSize) * 100;
-      console.log(`Progresso: ${progress.toFixed(2)}%`);
-
-      // Caso termine
-      if (response.status === 200 || response.status === 201) {
-        console.log("Upload finalizado!");
-        return response.data;
-      }
-
-      start = end;
+    } catch (err) {
+      console.error("Erro crítico no upload estruturado:", err.message);
+      throw err;
     }
   }
 }

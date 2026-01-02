@@ -4,14 +4,14 @@ const { google } = require("googleapis");
 
 const credentials = JSON.parse(fs.readFileSync("src/configs/oauth_credentials.json"));
 
-const { client_id, client_secret, redirect_uris } = credentials.web;
+const { client_id, client_secret } = credentials.web;
+const redirect_uris = ["urn:ietf:wg:oauth:2.0:oob", "http://localhost"];
 
 const oAuth2Client = new google.auth.OAuth2(
   client_id,
   client_secret,
-  redirect_uris[0]
+  redirect_uris[1]
 );
-
 
 // SCOPES NECESSÁRIOS
 const SCOPES = ["https://www.googleapis.com/auth/drive"];
