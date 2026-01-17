@@ -159,8 +159,8 @@ class PublicationRepository {
             'types_of_publication.description_title',
             'types_of_publication.file_title',
             )
-            .orderBy("number", "desc")
             .orderBy(knex.raw("SUBSTR(date, 7, 4) || '-' || SUBSTR(date, 4, 2) || '-' || SUBSTR(date, 1, 2)"), "desc")
+            .orderBy("number", "desc")
             .modify(qb => {
             if (domain_id) qb.where({ 'publications.domain_id': domain_id });
             if (types && types.length) {
