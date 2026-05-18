@@ -16,6 +16,7 @@ const BackupLogsRepository = require("../repositories/BackupLogsRepository");
 const PublicationsService = require("./PublicationsService");
 
 const TypesOfPublicationRepository = require("../repositories/TypesOfPublicationRepository");
+const { refreshAllowedDomains } = require("../utils/corsDomains");
 
 let exportProgress = 0;
 let importStage = 0; 
@@ -97,6 +98,9 @@ class DomainsService {
 
         const domainCreate = await this.domainRepository.create({ domain_name, url });
 
+        // Recarrega a lista de domínios permitidos em memória para o CORS
+        await refreshAllowedDomains();
+
         return domainCreate;
     };
 
@@ -111,6 +115,9 @@ class DomainsService {
         domain.url = url ?? domain.url;
 
         const domainUpdate = await this.domainRepository.update(domain);
+
+        // Recarrega a lista de domínios permitidos em memória para o CORS
+        await refreshAllowedDomains();
 
         return domainUpdate;
     };
@@ -130,7 +137,12 @@ class DomainsService {
 
         await publicationsService.attachmentsDelete({ domain_id, attachments: attachmentsId });
 
-        return await this.domainRepository.delete(domain_id);
+        const domainDeleted = await this.domainRepository.delete(domain_id);
+
+        // Recarrega a lista de domínios permitidos em memória para o CORS
+        await refreshAllowedDomains();
+
+        return domainDeleted;
     };
 
     async showDomain(domain_id) {

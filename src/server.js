@@ -9,28 +9,21 @@ const cors = require("cors");
 const AppError = require("./utils/AppError");
 const routes = require("./routes");
 const uploadConfig = require("./configs/upload");
-const knex = require("./database/knex");
-
-async function getAllowedDomains() {
-    try {
-        const domains = await knex("domains").pluck('url');
-        domains.push("http://localhost:5173");
-        return domains;
-    } catch (error) {
-        console.error("Error fetching domains:", error);
-        return [];
-    }
-}
+const { refreshAllowedDomains, isAllowedDomain } = require("./utils/corsDomains");
 
 (async () => {
-    const allowedDomains = await getAllowedDomains();
+    // Popula a lista de domínios permitidos em memória.
+    // Se falhar, o app sobe mesmo assim com a lista mínima (localhost),
+    // e o erro fica logado para diagnóstico.
+    await refreshAllowedDomains();
 
     const app = express();
 
     const corsOptions = {
         origin: function (origin, callback) {
-            // Se a origem não for fornecida (por exemplo, para requisições feitas localmente) ou está incluída na lista de permitidos
-            if (!origin || allowedDomains.includes(origin)) {
+            // Se a origem não for fornecida (por exemplo, para requisições feitas localmente)
+            // ou está incluída na lista de permitidos
+            if (!origin || isAllowedDomain(origin)) {
                 callback(null, true);
             } else {
                 callback(new Error('Not allowed by CORS'));
