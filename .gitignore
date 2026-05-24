@@ -4,3 +4,4 @@ uploads
 apikey.json
 oauth_credentials.json
 tokens.json
+src/database/database.db
