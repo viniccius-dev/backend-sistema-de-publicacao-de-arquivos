@@ -659,6 +659,14 @@ class DomainsService {
 
         const settingUpdated = await this.domainRepository.updateSystemSetting(setting);
 
+        // Se a frequência de backup foi alterada, reagenda o cron job
+        // sem precisar de restart do processo.
+        // Lazy require evita dependência circular (backupRunner já requer este arquivo).
+        if (key === "backup_frequency") {
+            const { rescheduleBackupJob } = require("../jobs/backupRunner");
+            await rescheduleBackupJob();
+        }
+
         return settingUpdated;
     };
 
