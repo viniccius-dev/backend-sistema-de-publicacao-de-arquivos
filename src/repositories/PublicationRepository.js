@@ -159,8 +159,11 @@ class PublicationRepository {
             'types_of_publication.description_title',
             'types_of_publication.file_title',
             )
-            .orderBy(knex.raw("SUBSTR(date, 7, 4) || '-' || SUBSTR(date, 4, 2) || '-' || SUBSTR(date, 1, 2)"), "desc")
-            .orderBy("number", "desc")
+            .orderByRaw(`
+                CASE WHEN NULLIF(number, '') IS NULL THEN 1 ELSE 0 END ASC,
+                CAST(NULLIF(number, '') AS INTEGER) DESC,
+                SUBSTR(date, 7, 4) || '-' || SUBSTR(date, 4, 2) || '-' || SUBSTR(date, 1, 2) DESC
+            `)
             .modify(qb => {
             if (domain_id) qb.where({ 'publications.domain_id': domain_id });
             if (types && types.length) {
