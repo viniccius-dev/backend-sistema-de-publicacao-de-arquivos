@@ -18,9 +18,18 @@ const PublicationsService = require("./PublicationsService");
 const TypesOfPublicationRepository = require("../repositories/TypesOfPublicationRepository");
 const { refreshAllowedDomains } = require("../utils/corsDomains");
 
-let exportProgress = 0;
-let importStage = 0; 
-let importStageProgress = 0;
+// Estado centralizado de export.
+// Mantido em módulo (em memória) — não persiste a restarts do processo.
+// Sub-caixas futuras (cancelamento, último export disponível) adicionarão campos aqui.
+const exportState = {
+    progress: 0
+};
+
+// Estado centralizado de import.
+const importState = {
+    stage: 0,
+    stageProgress: 0
+};
 
 
 function safeSplitSQL(sql) {
@@ -173,7 +182,25 @@ class DomainsService {
         }
 
         const exportPath = path.resolve(__dirname, "..", "database", `export_temp.sql`);
-        const zipPath = path.resolve(__dirname, "..", "..", "tmp", `export_${Date.now()}.zip`);
+
+        // Separação de fluxos:
+        // - Manual: salva em tmp/exports/ (servido publicamente pelo nginx, expira em 24h)
+        // - Automático: salva em tmp/ (uso interno do backupRunner; ZIP é apagado após upload ao Drive)
+        const isManual = triggerType === "Manual";
+        const targetDir = isManual
+            ? path.resolve(__dirname, "..", "..", "tmp", "exports")
+            : path.resolve(__dirname, "..", "..", "tmp");
+
+        if (isManual) {
+            fs.mkdirSync(targetDir, { recursive: true });
+        }
+
+        // Nome legível em horário de São Paulo: backup_2026-05-19_11-32-08.zip
+        const zonedDate = toZonedTime(new Date(), "America/Sao_Paulo");
+        const timestamp = format(zonedDate, "yyyy-MM-dd_HH-mm-ss", { timeZone: "America/Sao_Paulo" });
+        const fileName = `backup_${timestamp}.zip`;
+        const zipPath = path.join(targetDir, fileName);
+
         const uploadPath = path.resolve(__dirname, "..", "..", "tmp", "uploads");
 
         try {
@@ -196,7 +223,7 @@ class DomainsService {
                             (data.fs.processedBytes / data.fs.totalBytes) * 100
                         );
 
-                        exportProgress = Math.min(percent, 99);
+                        exportState.progress = Math.min(percent, 99);
                     }
                 });
 
@@ -236,21 +263,45 @@ class DomainsService {
             const stats = fs.statSync(zipPath);
             const fileSize = stats.size;
 
+            // Política "um link único" — só vale para o fluxo MANUAL.
+            // O fluxo automático apaga seu próprio ZIP no backupRunner após upload ao Drive.
+            if (isManual) {
+                try {
+                    const existingFiles = fs.readdirSync(targetDir);
+                    for (const file of existingFiles) {
+                        const filePath = path.join(targetDir, file);
+                        if (filePath !== zipPath) {
+                            try {
+                                fs.unlinkSync(filePath);
+                            } catch (err) {
+                                console.warn(`Não foi possível remover ZIP antigo ${file}:`, err.message);
+                            }
+                        }
+                    }
+                } catch (err) {
+                    console.warn("Erro ao limpar ZIPs antigos:", err.message);
+                }
+            }
+
+            // Expiração: 24h a partir de agora (em ISO 8601 UTC).
+            // O frontend converte para hora local na exibição.
+            const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+
             // Log de sucesso
             if (triggerType === "Manual") {
                 await backupLogsRepository.createLog({
                     action_type: "Exportação",
                     trigger_type: "Manual",
                     status: "Sucesso",
-                    file_name: path.basename(zipPath),
+                    file_name: fileName,
                     file_size: fileSize,
                     message: "Exportação concluída com sucesso."
                 });
             }
 
-            exportProgress = 100;
+            exportState.progress = 100;
 
-            return zipPath;
+            return { zipPath, fileName, fileSize, expiresAt };
 
         } catch (error) {
             console.error("Erro durante exportação:", error);
@@ -260,7 +311,7 @@ class DomainsService {
                     action_type: "Exportação",
                     trigger_type: "Manual",
                     status: "Erro",
-                    file_name: path.basename(zipPath),
+                    file_name: fileName,
                     file_size: 0,
                     message: `Erro na exportação: ${error.message}`
                 });
@@ -388,8 +439,8 @@ class DomainsService {
         const importDir = zipPath.replace(".zip", "_import");
         fs.mkdirSync(importDir, { recursive: true });
 
-        importStage = 0;
-        importStageProgress = 0;
+        importState.stage = 0;
+        importState.stageProgress = 0;
 
         let fileSize = 0;
 
@@ -401,12 +452,12 @@ class DomainsService {
 
 
             /* -------------------------- STAGE 0 — EXTRAÇÃO -------------------------- */
-            importStage = 0;
-            importStageProgress = 10;
+            importState.stage = 0;
+            importState.stageProgress = 10;
 
             await extract(zipPath, { dir: importDir });
 
-            importStageProgress = 100;
+            importState.stageProgress = 100;
 
 
 
@@ -418,8 +469,8 @@ class DomainsService {
             const totalStatements = statements.length;
             let executed = 0;
 
-            importStage = 1;
-            importStageProgress = 0;
+            importState.stage = 1;
+            importState.stageProgress = 0;
 
             await knex.transaction(async trx => {
                 await this.clearDatabase(trx);
@@ -428,15 +479,15 @@ class DomainsService {
                     await trx.raw(stmt);
                     executed++;
 
-                    importStageProgress = Math.round((executed / totalStatements) * 100);
+                    importState.stageProgress = Math.round((executed / totalStatements) * 100);
                 }
             });
 
 
 
             /* --------------------------- STAGE 2 — ARQUIVOS --------------------------- */
-            importStage = 2;
-            importStageProgress = 0;
+            importState.stage = 2;
+            importState.stageProgress = 0;
 
             const extractedUploads = path.join(importDir, "uploads");
 
@@ -457,11 +508,11 @@ class DomainsService {
                     );
 
                     copied++;
-                    importStageProgress = Math.round((copied / totalFiles) * 100);
+                    importState.stageProgress = Math.round((copied / totalFiles) * 100);
                 }
             }
 
-            importStageProgress = 100;
+            importState.stageProgress = 100;
 
 
 
@@ -603,11 +654,11 @@ class DomainsService {
     };
 
     async getExportProgress() {
-        return exportProgress;
+        return exportState.progress;
     };
 
     async getImportProgress() {
-        return { importStage, importStageProgress };
+        return { importStage: importState.stage, importStageProgress: importState.stageProgress };
     };
 
     async clearDatabase(trx) {

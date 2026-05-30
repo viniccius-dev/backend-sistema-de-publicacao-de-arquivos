@@ -50,9 +50,12 @@ async function executeBackupJob() {
     const domainsService = new DomainsService();
     const drive = new GoogleDriveService();
 
-    zipPath = await domainsService.exportDatabaseAndAttachments({
+    // exportDatabaseAndAttachments retorna objeto { zipPath, fileName, fileSize, expiresAt }
+    // desde a Caixa 2.2. Para o fluxo automático, só usamos zipPath.
+    const exportResult = await domainsService.exportDatabaseAndAttachments({
       triggerType: "Automatic"
     });
+    zipPath = exportResult.zipPath;
 
     if (!fs.existsSync(zipPath)) {
       console.error("Arquivo ZIP não encontrado:", zipPath);

@@ -1,5 +1,3 @@
-const fs = require("fs");
-
 const AppError = require("../utils/AppError");
 
 const DomainRepository = require("../repositories/DomainRepository");
@@ -62,14 +60,17 @@ class DomainsController {
         const domainsService = new DomainsService(domainRepository);
 
         try {
-            const zipPath = await domainsService.exportDatabaseAndAttachments({
+            const result = await domainsService.exportDatabaseAndAttachments({
                 domain_id,
                 type_of_publication_id
             });
 
-            response.download(zipPath, `export_${Date.now()}.zip`, (err) => {
-                if (err) console.error(err);
-                if (fs.existsSync(zipPath)) fs.unlinkSync(zipPath);
+            // O ZIP permanece em tmp/exports/ e é servido pelo nginx (Caixa 3).
+            // O job de limpeza (Caixa 2.5) cuidará da expiração após 24h.
+            return response.json({
+                fileName: result.fileName,
+                fileSize: result.fileSize,
+                expiresAt: result.expiresAt
             });
         } catch (error) {
             console.error("Erro ao exportar os dados e arquivos anexados", error);
